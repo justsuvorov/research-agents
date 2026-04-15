@@ -1,0 +1,37 @@
+# Default agent configuration
+# Override any section in your agent_config.yaml
+
+research:
+  sources:
+    - arxiv
+    - semantic_scholar
+  max_papers: 30
+  citation_format: APA
+  language: en
+
+data:
+  output_format: csv
+  preprocessing:
+    - drop_duplicates
+    - drop_na
+  extraction_rules: []  # must be defined by user
+
+ml:
+  library: null         # required — user must specify
+  model: GLM
+  target_variable: null # required — user must specify
+  features: []          # empty = all non-target columns
+  hyperparameters: {}
+
+report:
+  template: null        # null = use built-in default
+  sections:
+    - abstract
+    - introduction
+    - methods
+    - results
+    - discussion
+    - conclusion
+  figures:
+    format: pdf
+    dpi: 300
