@@ -23,6 +23,7 @@ dependencies = [
 
     # LLM
     "anthropic>=0.28",
+    "google-genai>=1.0",
     "python-dotenv>=1.0",
 
     # Figures

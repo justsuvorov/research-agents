@@ -3,12 +3,32 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 import anthropic
+from google import genai
+from google.genai import types
 
 
 class AIModel(ABC):
     @abstractmethod
     def complete(self, *, system: str, user: str, max_tokens: int) -> str:
         ...
+
+
+class GeminiModel(AIModel):
+
+    def __init__(self, client: genai.Client, model: str = "gemini-2.5-flash") -> None:
+        self._client = client
+        self._model = model
+
+    def complete(self, *, system: str, user: str, max_tokens: int) -> str:
+        response = self._client.models.generate_content(
+            model=self._model,
+            contents=user,
+            config=types.GenerateContentConfig(
+                system_instruction=system,
+                max_output_tokens=max_tokens,
+            ),
+        )
+        return response.text
 
 
 class AnthropicModel(AIModel):

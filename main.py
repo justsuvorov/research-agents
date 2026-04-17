@@ -12,8 +12,8 @@ import os
 import sys
 from pathlib import Path
 
-import anthropic
 from dotenv import load_dotenv
+from google import genai
 from loguru import logger
 
 from research_agents.agents.data_agent import DataAgent
@@ -29,7 +29,7 @@ from research_agents.agents.research.searchers import (
     SemanticScholarSearcher,
 )
 from research_agents.agents.research.synthesizer import Synthesizer
-from research_agents.ai_model import AnthropicModel
+from research_agents.ai_model import GeminiModel
 from research_agents.config import agent_config, research_goal, ConfigError
 from research_agents.pipeline import ResearchPipeline
 from research_agents.prompt_loader import PromptLoader
@@ -67,8 +67,7 @@ def main(args: argparse.Namespace) -> int:
 
     # --- Shared infrastructure ---
     prompts   = PromptLoader(os.getenv("PROMPTS_DIR", "./prompts"))
-    llm       = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-    ai_model  = AnthropicModel(client=llm)
+    ai_model  = GeminiModel(client=genai.Client(api_key=os.environ["GEMINI_API_KEY"]))
 
     # --- RunContext ---
     ctx = RunContext.run_context_or_new(
