@@ -7,8 +7,9 @@ from __future__ import annotations
 
 import json
 
-import anthropic
 from loguru import logger
+
+from research_agents.ai_model import AIModel
 
 from research_agents.agents.research.models import KnowledgeCategory, Paper, PaperAnalysis
 
@@ -17,11 +18,11 @@ class PaperAnalyzer:
 
     def __init__(
         self,
-        client: anthropic.Anthropic,
+        model: AIModel,
         system_prompt: str,
         user_template: str,
     ) -> None:
-        self._client = client
+        self._model = model
         self._system_prompt = system_prompt
         self._user_template = user_template
 
@@ -36,20 +37,12 @@ class PaperAnalyzer:
             abstract=paper.abstract or "No abstract available.",
         )
 
-        response = self._client.messages.create(
-            model="claude-sonnet-4-6",
+        raw = self._model.complete(
+            system=self._system_prompt,
+            user=content,
             max_tokens=1024,
-            system=[
-                {
-                    "type": "text",
-                    "text": self._system_prompt,
-                    "cache_control": {"type": "ephemeral"},
-                }
-            ],
-            messages=[{"role": "user", "content": content}],
         )
-
-        return self._parse_analysis(response.content[0].text, paper)
+        return self._parse_analysis(raw, paper)
 
     def _parse_analysis(self, raw: str, paper: Paper) -> PaperAnalysis:
         try:

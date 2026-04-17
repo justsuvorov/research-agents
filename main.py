@@ -29,6 +29,7 @@ from research_agents.agents.research.searchers import (
     SemanticScholarSearcher,
 )
 from research_agents.agents.research.synthesizer import Synthesizer
+from research_agents.ai_model import AnthropicModel
 from research_agents.config import agent_config, research_goal, ConfigError
 from research_agents.pipeline import ResearchPipeline
 from research_agents.prompt_loader import PromptLoader
@@ -65,8 +66,9 @@ def main(args: argparse.Namespace) -> int:
         return 1
 
     # --- Shared infrastructure ---
-    prompts = PromptLoader(os.getenv("PROMPTS_DIR", "./prompts"))
-    llm     = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+    prompts   = PromptLoader(os.getenv("PROMPTS_DIR", "./prompts"))
+    llm       = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+    ai_model  = AnthropicModel(client=llm)
 
     # --- RunContext ---
     ctx = RunContext.run_context_or_new(
@@ -77,19 +79,19 @@ def main(args: argparse.Namespace) -> int:
 
     # --- Research agent dependencies ---
     query_builder = QueryBuilder(
-        client=llm,
+        model=ai_model,
         system_prompt=prompts.prompt_text("research", "system.txt"),
         user_template=prompts.prompt_text("research", "query_builder.txt"),
     )
 
     paper_analyzer = PaperAnalyzer(
-        client=llm,
+        model=ai_model,
         system_prompt=prompts.prompt_text("research", "system.txt"),
         user_template=prompts.prompt_text("research", "paper_analyzer.txt"),
     )
 
     synthesizer = Synthesizer(
-        client=llm,
+        model=ai_model,
         system_prompt=prompts.prompt_text("research", "system.txt"),
         user_template=prompts.prompt_text("research", "synthesizer.txt"),
     )

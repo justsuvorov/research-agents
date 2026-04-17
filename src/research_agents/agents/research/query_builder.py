@@ -7,8 +7,9 @@ from __future__ import annotations
 
 import json
 
-import anthropic
 from loguru import logger
+
+from research_agents.ai_model import AIModel
 
 _FALLBACK_QUERIES = [
     "slewing bearing internal gear wear boundary lubrication",
@@ -24,11 +25,11 @@ class QueryBuilder:
 
     def __init__(
         self,
-        client: anthropic.Anthropic,
+        model: AIModel,
         system_prompt: str,
         user_template: str,
     ) -> None:
-        self._client = client
+        self._model = model
         self._system_prompt = system_prompt
         self._user_template = user_template
 
@@ -36,25 +37,11 @@ class QueryBuilder:
         """Return list of search query strings generated from the research goal."""
         logger.debug("[QueryBuilder] generating {} queries", n_queries)
 
-        response = self._client.messages.create(
-            model="claude-sonnet-4-6",
+        raw = self._model.complete(
+            system=self._system_prompt,
+            user=self._user_template.format(goal=goal, n_queries=n_queries),
             max_tokens=512,
-            system=[
-                {
-                    "type": "text",
-                    "text": self._system_prompt,
-                    "cache_control": {"type": "ephemeral"},
-                }
-            ],
-            messages=[
-                {
-                    "role": "user",
-                    "content": self._user_template.format(goal=goal, n_queries=n_queries),
-                }
-            ],
-        )
-
-        raw = response.content[0].text.strip()
+        ).strip()
         try:
             queries = json.loads(raw)
             if not isinstance(queries, list):
