@@ -16,6 +16,9 @@ import anthropic
 from dotenv import load_dotenv
 from loguru import logger
 
+from research_agents.agents.data.assembler import DatasetAssembler
+from research_agents.agents.data.paper_extractor import PaperExtractor
+from research_agents.agents.data.standards_calculator import StandardsCalculator
 from research_agents.agents.data_agent import DataAgent
 from research_agents.agents.ml_agent import MLAgent
 from research_agents.agents.report_agent import ReportAgent
@@ -111,7 +114,20 @@ def main(args: argparse.Namespace) -> int:
             paper_analyzer=paper_analyzer,
             synthesizer=synthesizer,
         ),
-        data_agent=DataAgent(ctx),
+        data_agent=DataAgent(
+            ctx=ctx,
+            paper_extractor=PaperExtractor(
+                client=llm,
+                system_prompt=prompts.prompt_text("data", "system.txt"),
+                user_template=prompts.prompt_text("data", "paper_extractor.txt"),
+            ),
+            standards_calculator=StandardsCalculator(
+                client=llm,
+                system_prompt=prompts.prompt_text("data", "system.txt"),
+                user_template=prompts.prompt_text("data", "standards_calculator.txt"),
+            ),
+            assembler=DatasetAssembler(),
+        ),
         ml_agent=MLAgent(ctx),
         report_agent=ReportAgent(ctx),
     )

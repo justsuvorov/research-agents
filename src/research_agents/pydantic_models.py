@@ -29,6 +29,7 @@ class AgentStatus(str, Enum):
 class Artifacts(BaseModel):
     literature_review: Optional[str] = None   # path to literature_review.md
     references: Optional[str] = None          # path to references.bib
+    papers_data: Optional[str] = None         # path to papers.json (analyzed papers)
     dataset: Optional[str] = None             # path to dataset.csv
     dataset_metadata: Optional[str] = None    # path to dataset_metadata.json
     model_results: Optional[str] = None       # path to model_results.json

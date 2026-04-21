@@ -28,17 +28,32 @@ class ResearchConfig(BaseModel):
 
 
 class ExtractionRule(BaseModel):
-    type: Literal["numeric", "categorical", "text", "boolean"]
     name: str
+    type: Literal["numeric", "categorical", "text", "boolean"]
     description: str
-    source: Literal["abstract", "full_text", "table"] = "abstract"
     unit: Optional[str] = None
+
+
+class OutputColumn(BaseModel):
+    name: str
+    type: Literal["numeric", "categorical", "boolean"]
+    unit: Optional[str] = None
+
+
+class CalculationRule(BaseModel):
+    name: str
+    standard: str
+    description: str
+    formula: str
+    output_columns: list[OutputColumn]
+    parameter_ranges: dict[str, list[float]]
 
 
 class DataConfig(BaseModel):
     output_format: Literal["csv", "json"] = "csv"
-    preprocessing: list[str] = ["drop_duplicates", "drop_na"]
     extraction_rules: list[ExtractionRule] = []
+    calculations: list[CalculationRule] = []
+    user_data: Optional[str] = None
 
 
 class MLConfig(BaseModel):

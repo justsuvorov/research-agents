@@ -73,15 +73,21 @@ class ResearchAgent(BaseAgent):
         sections = self._synthesizer.literature_review_sections(report)
 
         # 6. Export
-        review_path = output_dir / "literature_review.md"
-        bib_path = output_dir / "references.bib"
+        review_path  = output_dir / "literature_review.md"
+        bib_path     = output_dir / "references.bib"
+        papers_path  = output_dir / "papers.json"
 
         markdown_review(report, sections, review_path)
         bib_file([a.paper for a in relevant], bib_path)
+        papers_path.write_text(
+            report.model_dump_json(indent=2),
+            encoding="utf-8",
+        )
 
         # 7. Update context
         self.ctx.set_artifact("literature_review", str(review_path))
         self.ctx.set_artifact("references", str(bib_path))
+        self.ctx.set_artifact("papers_data", str(papers_path))
 
     def _search_all(self, queries: list[str], cfg: ResearchConfig) -> list[Paper]:
         papers: list[Paper] = []
