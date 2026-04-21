@@ -26,6 +26,8 @@ from research_agents.agents.ml.errors import LibraryImportError, ModelFitError
 from research_agents.agents.ml.models import ModelResult
 from research_agents.config import MLConfig
 
+_RESERVED_MODEL_PARAMS = frozenset({"wrapper", "name"})
+
 
 class DataFrameExtractor(Extractor):
     """Thin Extractor wrapper that serves a pre-loaded DataFrame to AutoMLManager."""
@@ -55,10 +57,16 @@ class ModelRunner:
         features = cfg.features or [c for c in non_service if c != target]
         model_name = cfg.model.lower()
 
-        df_model = df[[*features, target]].copy()
+        df_model = df[[*features, target]]
 
         model_params: dict[str, Any] = {"wrapper": "glm", "name": model_name}
-        model_params.update(cfg.hyperparameters)
+        overrides = {k: v for k, v in cfg.hyperparameters.items() if k not in _RESERVED_MODEL_PARAMS}
+        if len(overrides) < len(cfg.hyperparameters):
+            ignored = set(cfg.hyperparameters) - set(overrides)
+            logger.warning("[ModelRunner] ignoring reserved hyperparameter keys: {}", ignored)
+        model_params.update(overrides)
+
+        configs_dir.mkdir(parents=True, exist_ok=True)
 
         logger.info("[ModelRunner] building outboxml config: target={}, features={}", target, len(features))
         all_models_config = build_default_all_models_config(
@@ -69,7 +77,6 @@ class ModelRunner:
             model_params=model_params,
         )
 
-        configs_dir.mkdir(parents=True, exist_ok=True)
         models_config_path  = configs_dir / "models_config.json"
         auto_ml_config_path = configs_dir / "auto_ml_config.json"
 
@@ -80,11 +87,7 @@ class ModelRunner:
 
         auto_ml_cfg = build_default_auto_ml_config()
         auto_ml_config_path.write_text(
-            json.dumps(
-                auto_ml_cfg.model_dump() if hasattr(auto_ml_cfg, "model_dump") else dict(auto_ml_cfg),
-                indent=2,
-                ensure_ascii=False,
-            ),
+            json.dumps(auto_ml_cfg.model_dump(), indent=2, ensure_ascii=False),
             encoding="utf-8",
         )
 
@@ -121,26 +124,29 @@ class ModelRunner:
         target: str,
         features: list[str],
     ) -> ModelResult:
-        coefficients = {k: float(v) for k, v in glm_result.params.to_dict().items()}
+        coefficients = {k: float(v) for k, v in glm_result.params.items()}
 
         try:
             ci_df = glm_result.conf_int()
             confidence_intervals: dict[str, list[float]] = {
-                k: [float(ci_df.loc[k, 0]), float(ci_df.loc[k, 1])]
+                k: [float(ci_df.at[k, 0]), float(ci_df.at[k, 1])]
                 for k in ci_df.index
             }
-        except Exception:
+        except Exception as exc:
+            logger.warning("[ModelRunner] could not extract confidence intervals: {}", exc)
             confidence_intervals = {}
 
         try:
-            p_values = {k: float(v) for k, v in glm_result.pvalues.to_dict().items()}
-        except Exception:
+            p_values = {k: float(v) for k, v in glm_result.pvalues.items()}
+        except Exception as exc:
+            logger.warning("[ModelRunner] could not extract p-values: {}", exc)
             p_values = {}
 
         try:
-            _, residuals_normality_p: float | None = normaltest(glm_result.resid_pearson)
-            residuals_normality_p = float(residuals_normality_p)
-        except Exception:
+            _, norm_p = normaltest(glm_result.resid_pearson)
+            residuals_normality_p: float | None = float(norm_p)
+        except Exception as exc:
+            logger.warning("[ModelRunner] could not compute residuals normality test: {}", exc)
             residuals_normality_p = None
 
         llf    = self._safe_float(getattr(glm_result, "llf", None))

@@ -1,6 +1,6 @@
 [build-system]
 requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.backends.legacy:build"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "research-agents"
@@ -25,8 +25,9 @@ dependencies = [
     "anthropic>=0.28",
     "python-dotenv>=1.0",
 
-    # Figures
+    # Figures & stats
     "matplotlib>=3.9",
+    "scipy>=1.13",
 ]
 
 [project.optional-dependencies]
@@ -35,6 +36,7 @@ dev = [
     "pytest-asyncio>=0.23",
     "ruff>=0.4",
     "mypy>=1.10",
+    "scikit-learn>=1.5",
 ]
 
 [tool.setuptools.packages.find]

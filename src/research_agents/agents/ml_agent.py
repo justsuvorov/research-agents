@@ -14,7 +14,6 @@ from research_agents.agents.ml.figure_plotter import FigurePlotter
 from research_agents.agents.ml.model_runner import ModelRunner
 from research_agents.agents.ml.result_exporter import ResultExporter
 from research_agents.base_agent import BaseAgent
-from research_agents.config import MLConfig
 from research_agents.pydantic_models import RunContext
 
 
@@ -34,7 +33,6 @@ class MLAgent(BaseAgent):
         self._result_exporter = result_exporter
 
     def run(self) -> None:
-        cfg        = MLConfig(**self.ctx.config["ml"])
         output_dir = Path(self.ctx.output_dir)
 
         df = self._dataset()
