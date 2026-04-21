@@ -20,6 +20,9 @@ from research_agents.agents.data.assembler import DatasetAssembler
 from research_agents.agents.data.paper_extractor import PaperExtractor
 from research_agents.agents.data.standards_calculator import StandardsCalculator
 from research_agents.agents.data_agent import DataAgent
+from research_agents.agents.ml.figure_plotter import FigurePlotter
+from research_agents.agents.ml.model_runner import ModelRunner
+from research_agents.agents.ml.result_exporter import ResultExporter
 from research_agents.agents.ml_agent import MLAgent
 from research_agents.agents.report_agent import ReportAgent
 from research_agents.agents.research_agent import ResearchAgent
@@ -128,7 +131,12 @@ def main(args: argparse.Namespace) -> int:
             ),
             assembler=DatasetAssembler(),
         ),
-        ml_agent=MLAgent(ctx),
+        ml_agent=MLAgent(
+            ctx=ctx,
+            model_runner=ModelRunner(cfg=cfg.ml),
+            figure_plotter=FigurePlotter(),
+            result_exporter=ResultExporter(),
+        ),
         report_agent=ReportAgent(ctx),
     )
 
