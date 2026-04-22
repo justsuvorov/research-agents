@@ -21,13 +21,20 @@ from scipy import stats
 
 class FigurePlotter:
 
-    def plot(self, glm_result: Any, figures_dir: Path, fmt: str = "pdf") -> None:
-        """Generate all 4 diagnostic figures into figures_dir."""
+    def plot(self, ds_result: Any, figures_dir: Path, fmt: str = "pdf") -> None:
+        """Generate all 4 diagnostic figures into figures_dir.
+
+        ds_result is a DSManagerResult from outboxml. The underlying
+        statsmodels GLM object has remove_data() called on it, so fitted
+        values and residuals are taken from ds_result.predictions['train']
+        and ds_result.data_subset.y_train instead.
+        """
         figures_dir.mkdir(parents=True, exist_ok=True)
+        glm_result = ds_result.model.model
 
         self._coef_plot(glm_result, figures_dir / f"coef_plot.{fmt}")
-        self._residuals_plot(glm_result, figures_dir / f"residuals.{fmt}")
-        self._qq_plot(glm_result, figures_dir / f"qq_plot.{fmt}")
+        self._residuals_plot(ds_result, figures_dir / f"residuals.{fmt}")
+        self._qq_plot(ds_result, figures_dir / f"qq_plot.{fmt}")
         self._feature_importance(glm_result, figures_dir / f"feature_importance.{fmt}")
 
     # ------------------------------------------------------------------
@@ -55,11 +62,16 @@ class FigurePlotter:
         plt.close(fig)
         logger.info("[FigurePlotter] saved {}", path.name)
 
-    def _residuals_plot(self, glm_result: Any, path: Path) -> None:
+    def _residuals_plot(self, ds_result: Any, path: Path) -> None:
         try:
-            fitted = glm_result.fittedvalues
-            resid  = glm_result.resid_pearson
-        except AttributeError as exc:
+            y_train = ds_result.data_subset.y_train
+            fitted  = ds_result.predictions["train"]
+            if y_train is None or fitted is None:
+                logger.warning("[FigurePlotter] training predictions not available, skipping residuals plot")
+                return
+            fitted = fitted.squeeze()
+            resid  = y_train - fitted
+        except Exception as exc:
             logger.warning("[FigurePlotter] cannot generate residuals plot: {}", exc)
             return
 
@@ -67,17 +79,22 @@ class FigurePlotter:
         ax.scatter(fitted, resid, alpha=0.5, s=20)
         ax.axhline(0, color="red", linewidth=0.8, linestyle="--")
         ax.set_xlabel("Fitted values")
-        ax.set_ylabel("Pearson residuals")
+        ax.set_ylabel("Residuals")
         ax.set_title("Residuals vs Fitted")
         plt.tight_layout()
         fig.savefig(path)
         plt.close(fig)
         logger.info("[FigurePlotter] saved {}", path.name)
 
-    def _qq_plot(self, glm_result: Any, path: Path) -> None:
+    def _qq_plot(self, ds_result: Any, path: Path) -> None:
         try:
-            resid = glm_result.resid_pearson
-        except AttributeError as exc:
+            y_train = ds_result.data_subset.y_train
+            fitted  = ds_result.predictions["train"]
+            if y_train is None or fitted is None:
+                logger.warning("[FigurePlotter] training predictions not available, skipping QQ plot")
+                return
+            resid = (y_train - fitted.squeeze()).to_numpy()
+        except Exception as exc:
             logger.warning("[FigurePlotter] cannot generate QQ plot: {}", exc)
             return
 
@@ -88,7 +105,7 @@ class FigurePlotter:
         ax.plot(x_line, slope * x_line + intercept, color="red", linewidth=1)
         ax.set_xlabel("Theoretical quantiles")
         ax.set_ylabel("Sample quantiles")
-        ax.set_title("QQ Plot of Pearson Residuals")
+        ax.set_title("QQ Plot of Residuals")
         plt.tight_layout()
         fig.savefig(path)
         plt.close(fig)

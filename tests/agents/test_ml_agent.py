@@ -23,7 +23,7 @@ from research_agents.pydantic_models import RunContext
 
 TARGET = "MedHouseVal"
 FEATURES = ["MedInc", "HouseAge", "AveRooms", "AveBedrms", "Population", "AveOccup"]
-SAMPLE_SIZE = 2000
+SAMPLE_SIZE = 300
 
 
 # ---------------------------------------------------------------------------

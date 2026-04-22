@@ -106,14 +106,15 @@ class ModelRunner:
 
         logger.info("[ModelRunner] extracting GLM result for model '{}'", model_name)
         try:
-            glm_result = auto_ml.get_result()[model_name].model.model
+            ds_result = auto_ml.get_result()[model_name]
+            glm_result = ds_result.model.model
         except (KeyError, AttributeError) as exc:
             raise ModelFitError(
                 f"Cannot access GLM result for model '{model_name}': {exc}"
             ) from exc
 
         model_result = self._model_result(glm_result, model_name, target, features)
-        return model_result, glm_result
+        return model_result, ds_result
 
     # ------------------------------------------------------------------
 
