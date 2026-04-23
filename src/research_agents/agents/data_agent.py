@@ -18,6 +18,7 @@ import pandas as pd
 from loguru import logger
 
 from research_agents.agents.data.assembler import DatasetAssembler, EmptyDatasetError
+from research_agents.agents.data.engineering_calculator import EngineeringCalculator
 from research_agents.agents.data.paper_extractor import PaperExtractor
 from research_agents.agents.data.standards_calculator import StandardsCalculator
 from research_agents.agents.research.models import LiteratureReport
@@ -34,12 +35,14 @@ class DataAgent(BaseAgent):
         ctx: RunContext,
         paper_extractor: PaperExtractor,
         standards_calculator: StandardsCalculator,
+        engineering_calculator: EngineeringCalculator,
         assembler: DatasetAssembler,
     ) -> None:
         super().__init__(ctx)
-        self._paper_extractor    = paper_extractor
-        self._standards_calculator = standards_calculator
-        self._assembler          = assembler
+        self._paper_extractor        = paper_extractor
+        self._standards_calculator   = standards_calculator
+        self._engineering_calculator = engineering_calculator
+        self._assembler              = assembler
 
     def run(self) -> None:
         cfg        = DataConfig(**self.ctx.config["data"])
@@ -48,17 +51,21 @@ class DataAgent(BaseAgent):
         # 1. Paper extraction
         paper_rows = self._paper_rows(cfg)
 
-        # 2. Standards calculations
+        # 2. Standards calculations (formula in config)
         calc_rows = self._calculation_rows(cfg)
 
-        # 3. User-provided data
+        # 3. Engineering calculations (LLM knows the standard)
+        engineering_rows = self._engineering_rows(cfg)
+
+        # 4. User-provided data
         user_rows = self._user_rows(cfg)
 
-        # 4. Assemble & export
+        # 5. Assemble & export
         try:
             dataset_path, metadata_path = self._assembler.assembled_dataset(
                 paper_rows=paper_rows,
                 calculation_rows=calc_rows,
+                engineering_rows=engineering_rows,
                 user_rows=user_rows,
                 cfg=cfg,
                 output_dir=output_dir,
@@ -101,6 +108,16 @@ class DataAgent(BaseAgent):
         rows: list[dict] = []
         for rule in cfg.calculations:
             rows.extend(self._standards_calculator.calculated_rows(rule))
+        return rows
+
+    def _engineering_rows(self, cfg: DataConfig) -> list[dict]:
+        if not cfg.engineering_calculations:
+            logger.info("[DataAgent] no engineering_calculations configured — skipping")
+            return []
+
+        rows: list[dict] = []
+        for rule in cfg.engineering_calculations:
+            rows.extend(self._engineering_calculator.calculated_rows(rule))
         return rows
 
     def _user_rows(self, cfg: DataConfig) -> list[dict]:

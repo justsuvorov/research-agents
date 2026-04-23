@@ -49,10 +49,20 @@ class CalculationRule(BaseModel):
     parameter_ranges: dict[str, list[float]]
 
 
+class EngineeringCalculationRule(BaseModel):
+    name: str
+    mechanism: str
+    standards: list[str]
+    description: str
+    input_parameters: dict[str, list[float | str]]
+    output_columns: list[OutputColumn]
+
+
 class DataConfig(BaseModel):
     output_format: Literal["csv", "json"] = "csv"
     extraction_rules: list[ExtractionRule] = []
     calculations: list[CalculationRule] = []
+    engineering_calculations: list[EngineeringCalculationRule] = []
     user_data: Optional[str] = None
 
 

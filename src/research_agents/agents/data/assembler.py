@@ -25,6 +25,7 @@ class DatasetAssembler:
         self,
         paper_rows: list[dict],
         calculation_rows: list[dict],
+        engineering_rows: list[dict],
         user_rows: list[dict],
         cfg: DataConfig,
         output_dir: Path,
@@ -42,6 +43,10 @@ class DatasetAssembler:
         if calculation_rows:
             frames.append(pd.DataFrame(calculation_rows))
             logger.info("[DatasetAssembler] calculation rows: {}", len(calculation_rows))
+
+        if engineering_rows:
+            frames.append(pd.DataFrame(engineering_rows))
+            logger.info("[DatasetAssembler] engineering calculation rows: {}", len(engineering_rows))
 
         if user_rows:
             frames.append(pd.DataFrame(user_rows))
@@ -63,7 +68,11 @@ class DatasetAssembler:
             df.to_json(dataset_path, orient="records", force_ascii=False, indent=2)
 
         metadata_path.write_text(
-            json.dumps(self._metadata(df, paper_rows, calculation_rows, user_rows), indent=2, ensure_ascii=False),
+            json.dumps(
+                self._metadata(df, paper_rows, calculation_rows, engineering_rows, user_rows),
+                indent=2,
+                ensure_ascii=False,
+            ),
             encoding="utf-8",
         )
 
@@ -74,6 +83,7 @@ class DatasetAssembler:
         df: pd.DataFrame,
         paper_rows: list[dict],
         calculation_rows: list[dict],
+        engineering_rows: list[dict],
         user_rows: list[dict],
     ) -> dict:
         columns = []
@@ -96,9 +106,10 @@ class DatasetAssembler:
             "n_rows": len(df),
             "n_cols": len(df.columns),
             "sources": {
-                "papers":       len(paper_rows),
-                "calculations": len(calculation_rows),
-                "user":         len(user_rows),
+                "papers":                  len(paper_rows),
+                "calculations":            len(calculation_rows),
+                "engineering_calculations": len(engineering_rows),
+                "user":                    len(user_rows),
             },
             "columns": columns,
         }
