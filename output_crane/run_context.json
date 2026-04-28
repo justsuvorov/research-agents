@@ -1,0 +1,187 @@
+{
+  "goal": "Generate a comprehensive dataset of ship crane load cases for structural analysis.",
+  "config": {
+    "research": {
+      "sources": [
+        "arxiv",
+        "semantic_scholar",
+        "mdpi"
+      ],
+      "max_papers": 30,
+      "citation_format": "APA",
+      "language": "en"
+    },
+    "data": {
+      "output_format": "csv",
+      "extraction_rules": [],
+      "calculations": [],
+      "engineering_calculations": [
+        {
+          "name": "ship_crane_loads_baseline",
+          "mechanism": "Ship-mounted jib crane — boom, slewing ring, and hoisting mechanism",
+          "standards": [
+            "RMRS Rules for the Classification and Construction of Ships (Part III, Machinery Installations)",
+            "DNV-ST-0378 Offshore and Platform Lifting Appliances",
+            "FEM 1.001 Rules for the Design of Hoisting Appliances"
+          ],
+          "description": "Calculate the resultant loads at the crane base (pillar bottom / ОПУ attachment) for a ship-mounted jib crane under different operating conditions, SWL values, and heel angles.\nGEOMETRY AND WEIGHTS: - Boom reach (вылет): 10 m for SWL≤5 t, 15 m for SWL≤15 t, 20 m for SWL≤40 t. - Boom mass Q_strely (kg): 450+0.15*SWL_kg for SWL≤5 t; 900+0.13*SWL_kg otherwise. - Rope/hook assembly mass Q_gruz_pr (kg): 0.05 * SWL_kg (5% of SWL). - Base inclination angle α = 5° (угол наклона основания крана).\nDYNAMIC COEFFICIENTS (RMRS / FEM 1.001): For \"nominal_port_boom_horizontal\" and \"max_port_lifting\":\n  ψ = 1.25 (standard port coefficient, FEM М5 group, moderate load).\nFor all sea load cases:\n  ψ = 1.50..2.20 — use ψ=1.65 for light sea (vertical heave only),\n  ψ=1.66 for heave+heel+rotation, ψ=1.65 for tangential case.\n  (These match RMRS Table for Seastate 2-3, SWH ≤ 0.75m.)\nKв (tangential coefficient, подъем на максимальной скорости):\n  Only applies to \"max_sea_tangential_max_speed\"; Kв = 1.28..1.5, use Kв=1.25.\n\nWIND LOADS (RMRS): - Port (port cases): q_wind = 125 Pa. - Sea (sea cases): q_wind = 400 Pa. Wind area of load A_swl = 0.6 * (SWL_kg / 1000)^(2/3) m² (approximate). Wind area of boom A_boom = 0.4 * reach_m m² (approximate).\nLOAD CASES AND HOW TO COMPUTE FORCES: All forces are at the crane base (пята колонны / pillar bottom). Sk = resultant tension in the rope at the hook (кН). Px1 = horizontal longitudinal force at crane base (кН, negative = toward bow). Py1 = horizontal transverse force at crane base (кН). Pz1 = tangential/inertial vertical force component (кН). theta_d_deg = effective operational heel angle (degrees) — equals input heel_angle_deg\n              for all cases where heel is part of the scenario; 0° otherwise.\n\nCASE DEFINITIONS: 1. \"nominal_port_boom_horizontal\" — boom horizontal, nominal load (SWL), port, no heel:\n   Sk = SWL_kN * ψ * cos(0°) + Q_strely_kN.\n   Px1 = -(Sk * cos(5°) + wind_horizontal).\n   Py1 = Sk * sin(0°) + wind_transverse.  [lateral equilibrium, no heel]\n   Pz1 = 0.\n   theta_d = 0°.\n   Note: Px1 ≈ -(SWL_kN*ψ + wind).\n\n2. \"max_port_lifting\" — lifting at SWL, port, heel_angle_deg:\n   Sk = SWL_kN * ψ.\n   Px1 = -(Sk * cos(heel_angle_deg) + wind_horizontal * cos(heel_angle_deg)).\n   Py1 = Sk * sin(heel_angle_deg) + wind_transverse.\n   Pz1 = 0.\n   theta_d = heel_angle_deg.\n\n3. \"max_sea_vertical_heave\" — vertical heave (вертикальная качка), sea, heel_angle_deg:\n   Sk = SWL_kN * ψ.\n   Px1 = -(Sk * cos(heel_angle_deg) + wind_horizontal).\n   Py1 = Sk * sin(heel_angle_deg) + wind_transverse.\n   Pz1 = 0.\n   theta_d = heel_angle_deg.\n   [ψ=1.65 accounts for dynamic amplification from heave]\n\n4. \"max_sea_heave_heel_rotation\" — heave + heel + boom rotation (поворот стрелы), sea:\n   Sk = SWL_kN * ψ.\n   Px1 = -(Sk * sin(heel_angle_deg)).   [boom rotated, longitudinal reduced]\n   Py1 = Sk * cos(heel_angle_deg) * 0.8 + wind_transverse.\n   Pz1 = 0.\n   theta_d = heel_angle_deg.\n   [ψ=1.66, rotated boom means Px1 is smaller, Py1 absorbs more]\n\n5. \"max_sea_tangential_max_speed\" — tangential forces at max hoisting speed, heave, rotation:\n   Sk = SWL_kN * ψ * Kв.   (Kв=1.25 coefficient for kinematic forces)\n   Px1 = 0.   [centred load, symmetric]\n   Py1 = SWL_kN * ψ * 0.80.   [transverse, heave dominant]\n   Pz1 = SWL_kN * ψ * Kв * sin(heel_angle_deg) * 0.85.   [tangential inertial component]\n   theta_d = heel_angle_deg.\n\nSIGN CONVENTION: Px1 negative toward bow, Py1 positive transverse port side. Round all outputs to 1 decimal place.\n",
+          "input_parameters": {
+            "SWL_t": [
+              2.75,
+              5.0,
+              10.0,
+              20.0,
+              35.0
+            ],
+            "heel_angle_deg": [
+              0.0,
+              15.0,
+              25.0,
+              35.0
+            ],
+            "load_case": [
+              "nominal_port_boom_horizontal",
+              "max_port_lifting",
+              "max_sea_vertical_heave",
+              "max_sea_heave_heel_rotation",
+              "max_sea_tangential_max_speed"
+            ]
+          },
+          "output_columns": [
+            {
+              "name": "Sk_kN",
+              "type": "numeric",
+              "unit": "кН"
+            },
+            {
+              "name": "Px1_kN",
+              "type": "numeric",
+              "unit": "кН"
+            },
+            {
+              "name": "Py1_kN",
+              "type": "numeric",
+              "unit": "кН"
+            },
+            {
+              "name": "Pz1_kN",
+              "type": "numeric",
+              "unit": "кН"
+            },
+            {
+              "name": "theta_d_deg",
+              "type": "numeric",
+              "unit": "degrees"
+            }
+          ]
+        },
+        {
+          "name": "ship_crane_loads_extended",
+          "mechanism": "Ship-mounted jib crane — boom, slewing ring, and hoisting mechanism (extended SWL range)",
+          "standards": [
+            "RMRS Rules for the Classification and Construction of Ships (Part III, Machinery Installations)",
+            "DNV-ST-0378 Offshore and Platform Lifting Appliances",
+            "FEM 1.001 Rules for the Design of Hoisting Appliances"
+          ],
+          "description": "Same calculation methodology as ship_crane_loads_baseline but applied to a wider SWL grid spanning very-light manipulator cranes (1.5 t) up to heavy offshore cranes (80 t).\nGEOMETRY AND WEIGHTS: - Boom reach (вылет): 8 m for SWL≤3 t, 12 m for SWL≤15 t, 18 m for SWL≤40 t,\n  25 m for SWL>40 t.\n- Boom mass Q_strely (kg): 450+0.15*SWL_kg for SWL≤5 t; 900+0.13*SWL_kg for 5<SWL≤40 t;\n  2500+0.11*SWL_kg for SWL>40 t.\n- Rope/hook assembly mass Q_gruz_pr (kg): 0.05 * SWL_kg. - Base inclination angle α = 5°.\nDYNAMIC COEFFICIENTS (RMRS / FEM 1.001): - \"nominal_port_boom_horizontal\", \"max_port_lifting\": ψ = 1.25. - \"max_sea_vertical_heave\": ψ = 1.65. - \"max_sea_heave_heel_rotation\": ψ = 1.66. - \"max_sea_tangential_max_speed\": ψ = 1.65, plus Kв = 1.25.\nWIND LOADS (RMRS): - Port: q_wind = 125 Pa. Sea: q_wind = 400 Pa. - A_swl = 0.6 * (SWL_kg / 1000)^(2/3) m². A_boom = 0.4 * reach_m m².\nFORCE FORMULAS AT CRANE BASE (identical to baseline rule): Sk = SWL_kN * ψ * (Kв for tangential case else 1) + (Q_strely_kN if nominal_port else 0). Decompose into Px1 (longitudinal, negative toward bow), Py1 (transverse), Pz1 (tangential vertical, only for sea_tangential case).\nCASE DEFINITIONS (same as baseline): 1. nominal_port_boom_horizontal:\n   Sk = SWL_kN*1.25 + Q_strely_kN; Px1 = -Sk; Py1 = 0; Pz1 = 0; theta_d = 0.\n2. max_port_lifting:\n   Sk = SWL_kN*1.25; Px1 = -Sk*cos(heel); Py1 = Sk*sin(heel); Pz1 = 0; theta_d = heel.\n3. max_sea_vertical_heave:\n   Sk = SWL_kN*1.65; Px1 = -Sk*cos(heel); Py1 = Sk*sin(heel); Pz1 = 0; theta_d = heel.\n4. max_sea_heave_heel_rotation:\n   Sk = SWL_kN*1.66; Px1 = -Sk*sin(heel); Py1 = Sk*cos(heel)*0.8; Pz1 = 0; theta_d = heel.\n5. max_sea_tangential_max_speed:\n   Sk = SWL_kN*1.65*1.25; Px1 = 0; Py1 = SWL_kN*1.65*0.80;\n   Pz1 = SWL_kN*1.65*1.25*sin(heel)*0.85; theta_d = heel.\n\nRound all outputs to 1 decimal place. Wind load contributions are <1 kN for these SWLs and may be omitted from the rounded outputs but included in _steps.\n",
+          "input_parameters": {
+            "SWL_t": [
+              1.5,
+              3.0,
+              8.0,
+              15.0,
+              25.0,
+              40.0,
+              60.0,
+              80.0
+            ],
+            "heel_angle_deg": [
+              0.0,
+              15.0,
+              25.0,
+              35.0
+            ],
+            "load_case": [
+              "nominal_port_boom_horizontal",
+              "max_port_lifting",
+              "max_sea_vertical_heave",
+              "max_sea_heave_heel_rotation",
+              "max_sea_tangential_max_speed"
+            ]
+          },
+          "output_columns": [
+            {
+              "name": "Sk_kN",
+              "type": "numeric",
+              "unit": "кН"
+            },
+            {
+              "name": "Px1_kN",
+              "type": "numeric",
+              "unit": "кН"
+            },
+            {
+              "name": "Py1_kN",
+              "type": "numeric",
+              "unit": "кН"
+            },
+            {
+              "name": "Pz1_kN",
+              "type": "numeric",
+              "unit": "кН"
+            },
+            {
+              "name": "theta_d_deg",
+              "type": "numeric",
+              "unit": "degrees"
+            }
+          ]
+        }
+      ],
+      "user_data": null
+    },
+    "ml": {
+      "library": null,
+      "model": "GLM",
+      "target_variable": null,
+      "features": [],
+      "hyperparameters": {}
+    },
+    "report": {
+      "template": null,
+      "sections": [
+        "abstract",
+        "introduction",
+        "methods",
+        "results",
+        "discussion",
+        "conclusion"
+      ],
+      "figures": {
+        "format": "pdf",
+        "dpi": 300
+      }
+    }
+  },
+  "output_dir": "D:\\Projects\\research-agents\\output_crane",
+  "run_id": "09cfb19d-ef7d-46ac-adf9-9b06da24ca82",
+  "created_at": "2026-04-27T18:46:33.434419+00:00",
+  "artifacts": {
+    "literature_review": null,
+    "references": null,
+    "papers_data": null,
+    "dataset": "D:\\Projects\\research-agents\\output_crane\\dataset.csv",
+    "dataset_metadata": "D:\\Projects\\research-agents\\output_crane\\dataset_metadata.json",
+    "model_results": null,
+    "figures_dir": null,
+    "article": null,
+    "article_pdf": null
+  },
+  "agent_status": {
+    "research": "pending",
+    "data": "completed",
+    "ml": "pending",
+    "report": "pending"
+  },
+  "errors": {}
+}

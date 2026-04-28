@@ -1,0 +1,33 @@
+Mechanism: {mechanism}
+Standards to apply: {standards}
+Task: {description}
+
+---
+
+Input parameter combinations (JSON array, {n_combinations} rows):
+{parameter_grid_json}
+
+---
+
+For each input combination above, compute the following output columns:
+{output_columns_block}
+
+---
+
+Calculation rules:
+- Follow the exact calculation procedure from the listed standards, clause by clause.
+- Compute all intermediate variables required to reach the output columns.
+- Store intermediate variables inside each row under the key "_steps" as a flat dict (variable_name → numeric value with unit noted in the key name where helpful, e.g. "F_rope_nom_kN": 13.5).
+- Apply standard-prescribed dynamic coefficients, safety factors, and efficiency values for the given load group (if load_group is an input parameter, use it; otherwise use the most conservative applicable value).
+- Round output column values to 3 significant figures.
+- If a combination is physically impossible (e.g. negative force, diameter below minimum allowed by standard) or outside the standard's validity range:
+  - Set all output column values to null.
+  - Add "_error": "<reason>" to that row.
+- Do NOT skip any input rows. Every input combination must produce exactly one output row.
+
+---
+
+Expected output schema (one element shown as example):
+{result_schema_example}
+
+Return ONLY a JSON array containing exactly {n_combinations} objects. No markdown, no prose.
