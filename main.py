@@ -2,17 +2,24 @@
 Research-agents pipeline entry point.
 
 Usage:
-    python main.py --goal research_goal.txt [--config agent_config.yaml] [--output ./output]
+    python main.py --goal research_goal.txt [--config agent_config.yaml] [--output ./output] [--reset]
+
+Options:
+    --goal      Path to research_goal.txt (required)
+    --config    Path to agent_config.yaml (optional)
+    --output    Output directory (default: ./output)
+    --reset     Reset pipeline by deleting run_context.json and checkpoints (optional)
 """
 
 from __future__ import annotations
 
 import argparse
 import os
+import shutil
 import sys
 from pathlib import Path
 
-import anthropic
+import google.generativeai as genai
 from dotenv import load_dotenv
 from loguru import logger
 
@@ -59,6 +66,7 @@ def _cli_args() -> argparse.Namespace:
     parser.add_argument("--goal",   required=True,      help="Path to research_goal.txt")
     parser.add_argument("--config", default=None,       help="Path to agent_config.yaml (optional)")
     parser.add_argument("--output", default="./output", help="Output directory (default: ./output)")
+    parser.add_argument("--reset",  action="store_true", help="Reset pipeline: delete run_context.json and checkpoints")
     return parser.parse_args()
 
 
@@ -71,15 +79,30 @@ def main(args: argparse.Namespace) -> int:
         logger.error("Configuration error: {}", exc)
         return 1
 
+    # --- Handle --reset flag ---
+    output_dir = Path(os.getenv("OUTPUT_DIR", args.output)).resolve()
+    if args.reset:
+        run_context_file = output_dir / "run_context.json"
+        checkpoints_dir = output_dir / "checkpoints"
+        if run_context_file.exists():
+            run_context_file.unlink()
+            logger.info("Deleted run_context.json")
+        if checkpoints_dir.exists():
+            shutil.rmtree(checkpoints_dir)
+            logger.info("Deleted checkpoints directory")
+
     # --- Shared infrastructure ---
     prompts = PromptLoader(os.getenv("PROMPTS_DIR", "./prompts"))
-    llm     = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+
+    # Initialize Gemini API
+    genai.configure(api_key=os.environ.get("GEMINI_API_KEY", ""))
+    llm = genai.GenerativeModel(os.getenv("AI_MODEL_NAME", "gemini-2.0-flash"))
 
     # --- RunContext ---
     ctx = RunContext.run_context_or_new(
         goal=goal,
         config=cfg.model_dump(),
-        output_dir=str(Path(os.getenv("OUTPUT_DIR", args.output)).resolve()),
+        output_dir=str(output_dir),
     )
 
     # --- Research agent dependencies ---
@@ -143,7 +166,12 @@ def main(args: argparse.Namespace) -> int:
             figure_plotter=FigurePlotter(),
             result_exporter=ResultExporter(),
         ),
-        report_agent=ReportAgent(ctx),
+        report_agent=ReportAgent(
+            ctx=ctx,
+            client=llm,
+            system_prompt=prompts.prompt_text("report", "system.txt"),
+            user_template=prompts.prompt_text("report", "review.txt"),
+        ),
     )
 
     result = pipeline.result()

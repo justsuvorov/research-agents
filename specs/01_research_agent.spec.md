@@ -1,58 +1,55 @@
-# Specification: Research Agent (Tribology & Marine Engineering)
+# Спецификация ResearchAgent (SDD)
 
-## 1. Role & Objective
-Высококвалифицированный ИИ-исследователь в области триботехники и проектирования судовых механизмов. Задача — проводить глубокий литературный поиск, формировать аналитические обзоры и подбирать математические модели износа, строго соответствующие физике процесса в ОПУ.
+## 1. Цель
+Поиск и анализ научных статей по исследовательской цели. Создание литературного обзора.
 
-## 2. Domain Constraints (Жесткие ограничения)
-- **Объект:** Опорно-поворотные устройства (ОПУ) с внутренним эвольвентным зацеплением.
-- **Режим смазки:** Граничная смазка (Boundary Lubrication). Игнорировать статьи по чистой гидродинамике.
-- **Геометрия:** Только внутреннее зацепление (Internal Gearing). Не путать с внешним.
-- **Стандарты:** Обязательный учет Правил РМРС (Российский морской регистр судоходства), п. 6.2.1.7, и ISO 4301-1.
+## 2. Входные данные
+- **research_goal.txt** — текст цели исследования
+- **agent_config.yaml** — конфиг (sources, max_papers, language)
+- **prompts/** — пользовательские промпты (system.txt, query_builder.txt, paper_analyzer.txt, synthesizer.txt)
 
-## 3. Targeted Knowledge Areas (Области поиска)
-1. **Трибология ОПУ:** Адгезионно-усталостный износ, питтинг, влияние морского тумана на деградацию смазки.
-2. **Математические модели:** Модель Крагельского-Тимофеева, классические формулы интенсивности износа $I_h = \Delta h / L$.
-3. **Композиты в СГПМ:** Применение ПКМ для замены стальных конструкций стрел, влияние снижения массы на контактные напряжения $\sigma_H$.
-4. **Статистические методы:** Применение GLM и Weight of Evidence (WoE) в инженерных расчетах.
+## 3. Ограничения (GUARDRAILS)
 
-## 4. Operational Pipeline
-1. **Search:** Искать в базах Scopus, Web of Science, Elibrary, РИНЦ.
-2. **Filter:** Отсеивать работы, где не учитывается динамика пусковых моментов ($M_{дин}$).
-3. **Reference:** Оформлять ссылки строго в формате [Номер] и готовить BibTeX-запись.
-4. **Synthesis:** Группировать найденные источники по категориям:
-   - "Теория износа"
-   - "Динамика кранов"
-   - "Машины и механизмы (ПКМ)"
+### 3.1 QueryBuilder
+- Таймаут: 30 сек
+- Max tokens: 512
+- Fallback: 6 встроенных запросов если JSON невалиден
+- Попытки: 1
 
-## 5. Output Format
-Каждый отчет агента должен содержать:
-- **Краткое резюме:** Почему этот источник важен для текущей диссертации.
-- **Key Equation:** Формула, которую можно интегрировать в модель.
-- **Gap Analysis:** Чего не хватает в существующих работах (обоснование научной новизны).
+### 3.2 Searchers
+- Max на источник: max_results (обычно 4)
+- Таймаут на источник: 15 сек
+- Таймаут всего: 60 сек
+- Если недоступен: skip → continue (не зацикливаться)
 
-## 6. Keywords (Слова-маркеры)
-- "Slewing bearing internal gear wear"
-- "Dynamic factor influence on gear tribology"
-- "Composite crane boom weight reduction"
-- "RMRS 6.2.1.7 requirements for slewing mechanisms"
+### 3.3 PaperAnalyzer
+- Max статей: max_papers
+- Таймаут на статью: 20 сек
+- Max tokens: 1024
+- Если парс невалиден: skip статья
 
-## 7. Inputs
-| Source | Key | Type | Description |
-|--------|-----|------|-------------|
-| RunContext | `goal` | str | Research goal and objectives |
-| AgentConfig | `research.sources` | list[str] | Sources to query |
-| AgentConfig | `research.max_papers` | int | Max papers (default: 30) |
-| AgentConfig | `research.citation_format` | str | APA / IEEE / GOST (default: APA) |
+### 3.4 Фильтрация
+- Минимум релевантных: 5
+- Если < 5: RuntimeError (не зацикливаться в поиске)
 
-## 8. Outputs
-| Artifact | Path | Format |
-|----------|------|--------|
-| `literature_review` | `output/literature_review.md` | Markdown |
-| `references` | `output/references.bib` | BibTeX |
+### 3.5 Synthesizer
+- Max разделов: 5
+- Таймаут на раздел: 30 сек
+- Max tokens: 2048
 
-## 9. Success Criteria
-- [ ] Минимум 5 источников собрано
-- [ ] Каждый источник имеет резюме, Key Equation, Gap Analysis
-- [ ] `.bib` содержит все цитированные работы
-- [ ] Источники сгруппированы по категориям
-- [ ] RunContext обновлён, status = "completed"
+### 3.6 Общие
+- Общий таймаут: 15 минут
+- Retry сетевых ошибок: 2 раза
+- Retry rate-limit: 3 раза
+- Логирование токенов на каждом этапе
+
+## 4. Выходные данные
+- literature_review.md (Markdown, минимум 500 символов)
+- references.bib (BibTeX, минимум 5 записей)
+- papers.json (валидный JSON)
+
+## 5. Критерии успеха
+✓ Found >= 5 relevant papers
+✓ All files created and non-empty
+✓ JSON valid
+✓ BibTeX entries > 0

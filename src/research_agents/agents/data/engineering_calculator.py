@@ -14,8 +14,9 @@ from __future__ import annotations
 
 import itertools
 import json
+import os
 
-import anthropic
+import google.generativeai as genai
 from loguru import logger
 
 from research_agents.config import EngineeringCalculationRule
@@ -25,7 +26,7 @@ class EngineeringCalculator:
 
     def __init__(
         self,
-        client: anthropic.Anthropic,
+        client: genai.GenerativeModel,
         system_prompt: str,
         user_template: str,
         batch_size: int = 20,
@@ -103,25 +104,22 @@ class EngineeringCalculator:
         )
 
         try:
-            response = self._client.messages.create(
-                model="claude-sonnet-4-6",
-                max_tokens=8192,
-                system=[
-                    {
-                        "type": "text",
-                        "text": self._system_prompt,
-                        "cache_control": {"type": "ephemeral"},
-                    }
+            response = self._client.generate_content(
+                contents=[
+                    f"{self._system_prompt}\n\n{content}"
                 ],
-                messages=[{"role": "user", "content": content}],
+                generation_config=genai.types.GenerationConfig(
+                    max_output_tokens=8192,
+                    temperature=float(os.getenv("GEN_TEMPERATURE_DETERMINISTIC", 0.2)),
+                ),
             )
-        except anthropic.APIError as exc:
+        except Exception as exc:
             logger.warning(
                 "[EngineeringCalculator] API error for '{}': {}", rule.name, exc
             )
             return []
 
-        return self._parse_rows(response.content[0].text, rule, len(batch))
+        return self._parse_rows(response.text, rule, len(batch))
 
     def _parse_rows(
         self, raw: str, rule: EngineeringCalculationRule, expected: int

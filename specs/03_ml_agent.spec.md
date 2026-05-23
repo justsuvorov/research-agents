@@ -1,98 +1,43 @@
-# Spec — MLAgent
+# Спецификация MLAgent (SDD)
 
-## Responsibility
+## 1. Цель
+Обучить GLM модель на датасете и сохранить результаты.
 
-Load the user's ML library, fit a GLM model on the prepared dataset, and export results and figures.
+## 2. Входные данные
+- **dataset.csv** — датасет от DataAgent
+- **agent_config.yaml** — конфиг (target_variable, features, hyperparameters)
 
-## Inputs
+## 3. Ограничения (GUARDRAILS)
 
-| Source | Key | Type | Description |
-|--------|-----|------|-------------|
-| RunContext | `artifacts.dataset` | path | CSV dataset from DataAgent |
-| RunContext | `artifacts.dataset_metadata` | path | Column metadata |
-| agent_config.yaml | `ml.library` | str | Python module name of user's ML library |
-| agent_config.yaml | `ml.model` | str | Model class name within library |
-| agent_config.yaml | `ml.target_variable` | str | Name of target column |
-| agent_config.yaml | `ml.features` | list[str] | Feature columns (empty = all non-target) |
-| agent_config.yaml | `ml.hyperparameters` | dict | Passed directly to model constructor |
+### 3.1 ModelRunner (outboxml)
+- Max rows в датасете: 100 000
+- Max features: 100 (обрезать если больше)
+- Min rows для обучения: 10
+- Target variable: обязательно существует в датасете
+- Таймаут обучения: 10 минут
+- Если обучение зависает > 10 мин: kill процесс и RuntimeError
 
-## Outputs
+### 3.2 FigurePlotter
+- Max фигур: 10
+- Таймаут на фигуру: 5 сек
+- Если фигура зависает: skip и continue
 
-| Artifact | Path | Format | Description |
-|----------|------|--------|-------------|
-| `model_results` | `output/model_results.json` | JSON | Coefficients, metrics, diagnostics |
-| `figures_dir` | `output/figures/` | PDF/PNG | Diagnostic and result plots |
+### 3.3 ResultExporter
+- Max coefficients: 100
+- Max metrics: 50
+- Валидация JSON структуры перед сохранением
+- Если экспорт fails: raise RuntimeError (не скрывать)
 
-## model_results.json Structure
+### 3.4 Общие
+- Таймаут агента: 15 минут
+- Контроль памяти: если > 2GB → warning и завершение
 
-```json
-{
-  "model": "GLM",
-  "library": "mylib",
-  "target": "col_name",
-  "features": ["f1", "f2"],
-  "coefficients": {
-    "intercept": 0.0,
-    "f1": 0.0,
-    "f2": 0.0
-  },
-  "metrics": {
-    "aic": 0.0,
-    "bic": 0.0,
-    "r2": 0.0,
-    "deviance": 0.0
-  },
-  "diagnostics": {
-    "p_values": { "f1": 0.0 },
-    "confidence_intervals": { "f1": [0.0, 0.0] },
-    "residuals_normality_p": 0.0
-  }
-}
-```
+## 4. Выходные данные
+- model_results.json (коэффициенты, метрики)
+- figures/ (диагностические графики)
 
-## Expected figures
-
-| File | Description |
-|------|-------------|
-| `figures/coef_plot.pdf` | Coefficient plot with confidence intervals |
-| `figures/residuals.pdf` | Residual vs fitted plot |
-| `figures/qq_plot.pdf` | QQ-plot of residuals |
-| `figures/feature_importance.pdf` | Feature importance / effect sizes |
-
-## Behavior
-
-1. Load dataset and metadata
-2. Dynamically import `ml.library` module
-3. Instantiate model: `model = library.ml.model(target=..., features=..., **hyperparameters)`
-4. Fit model on dataset
-5. Extract coefficients, metrics, diagnostics
-6. Generate figures via model's plotting interface or matplotlib fallback
-7. Write `model_results.json` and figures
-8. Update RunContext
-
-## Integration Contract with User's Library
-
-The user's library must expose:
-
-```python
-# Minimum required interface
-model = MyLibrary.GLM(target="y", features=["x1", "x2"], **kwargs)
-model.fit(df: pd.DataFrame)
-model.coefficients()   → dict
-model.metrics()        → dict
-model.diagnostics()    → dict
-model.plot(output_dir: str)   # optional — fallback to matplotlib if absent
-```
-
-## Error Handling
-
-- If `ml.library` cannot be imported → raise `LibraryImportError` with module name
-- If model fitting fails → raise `ModelFitError`, preserve traceback
-- If `plot()` not available → generate standard matplotlib fallback plots
-
-## Success Criteria
-
-- [ ] `model_results.json` contains all required keys
-- [ ] All 4 figures generated in `output/figures/`
-- [ ] No silent NaN in coefficients
-- [ ] RunContext updated with artifact paths and status = "completed"
+## 5. Критерии успеха
+✓ model_results.json создан и валиден
+✓ Минимум 5 коэффициентов
+✓ Метрики содержат R², RMSE, AIC
+✓ Фигуры созданы (если format=pdf/png)

@@ -1,88 +1,42 @@
-# Spec — ReportAgent
+# Спецификация ReportAgent (SDD)
 
-## Responsibility
+## 1. Цель
+Создать технический отчет о модели на основе результатов MLAgent.
 
-Compose a complete scientific article in LaTeX from all prior artifacts, then compile to PDF.
+## 2. Входные данные
+- **model_results.json** — результаты от MLAgent
+- **dataset.csv** — датасет (для статистики)
+- **figures/** — графики от MLAgent
+- **prompts/report/** — пользовательский промпт (system.txt, review.txt)
 
-## Inputs
+## 3. Ограничения (GUARDRAILS)
 
-| Source | Key | Type | Description |
-|--------|-----|------|-------------|
-| RunContext | `goal` | str | Research goal (for abstract/intro) |
-| RunContext | `artifacts.literature_review` | path | Markdown review |
-| RunContext | `artifacts.references` | path | BibTeX file |
-| RunContext | `artifacts.dataset_metadata` | path | Dataset description for Methods |
-| RunContext | `artifacts.model_results` | path | Model results for Results section |
-| RunContext | `artifacts.figures_dir` | path | Figures directory |
-| agent_config.yaml | `report.template` | path | LaTeX template file |
-| agent_config.yaml | `report.sections` | list[str] | Sections to include |
-| agent_config.yaml | `report.figures.format` | str | pdf / png (default: pdf) |
-| agent_config.yaml | `report.figures.dpi` | int | Figure DPI (default: 300) |
+### 3.1 LLM Вызов
+- Таймаут: 60 сек
+- Max tokens: 8192
+- Temperature: 0.7
+- Fallback: если fails → сгенерировать минимальный отчет
 
-## Outputs
+### 3.2 Валидация входов
+- model_results.json: обязательно существует и валиден
+- dataset.csv: опционально, но если есть → использовать для статистики
+- figures/: опционально
 
-| Artifact | Path | Format | Description |
-|----------|------|--------|-------------|
-| `article` | `output/article.tex` | LaTeX | Complete article source |
-| `article_pdf` | `output/article.pdf` | PDF | Compiled article (if pdflatex available) |
+### 3.3 Экспорт
+- Формат: Markdown
+- Min размер: 500 символов
+- Max размер: 50KB (обрезать если больше)
+- Обязательные разделы: abstract, methods, results, discussion
 
-## Default Parameters
+### 3.4 Общие
+- Таймаут агента: 5 минут
+- Retry если LLM fails: 1 раз, затем fallback
 
-```yaml
-sections: [abstract, introduction, methods, results, discussion, conclusion]
-figures:
-  format: pdf
-  dpi: 300
-```
+## 4. Выходные данные
+- report.md (технический отчет на русском языке)
 
-## LaTeX Template Interface
-
-The template must contain placeholder comments that ReportAgent fills:
-
-```latex
-%% PLACEHOLDER: abstract
-%% PLACEHOLDER: introduction
-%% PLACEHOLDER: methods
-%% PLACEHOLDER: results
-%% PLACEHOLDER: discussion
-%% PLACEHOLDER: conclusion
-%% PLACEHOLDER: bibliography  →  \bibliography{references}
-%% PLACEHOLDER: figures_dir   →  path injected into \graphicspath
-```
-
-## Section Content Mapping
-
-| Section | Source data |
-|---------|-------------|
-| abstract | goal + key model metrics (via LLM) |
-| introduction | goal + literature_review intro (via LLM) |
-| methods | dataset_metadata + model config (via LLM) |
-| results | model_results.json + figures (via LLM + \includegraphics) |
-| discussion | model diagnostics + literature context (via LLM) |
-| conclusion | summary of results + goal (via LLM) |
-
-## Behavior
-
-1. Load all input artifacts
-2. Load LaTeX template (default if not provided)
-3. For each section in `report.sections`:
-   a. Gather relevant data from artifacts
-   b. Generate section text via LLM
-   c. Insert into template at `%% PLACEHOLDER: {section}`
-4. Insert bibliography reference
-5. Write `article.tex`
-6. If `pdflatex` available → compile to `article.pdf`
-7. Update RunContext
-
-## Error Handling
-
-- If template file not found → use built-in default template
-- If a section's source artifact is missing → skip section, log warning
-- If pdflatex not available → write `.tex` only, log info
-
-## Success Criteria
-
-- [ ] `article.tex` contains all requested sections
-- [ ] All figures referenced in `.tex` exist in figures_dir
-- [ ] `.bib` file referenced correctly
-- [ ] RunContext updated with artifact paths and status = "completed"
+## 5. Критерии успеха
+✓ report.md создан
+✓ Размер > 500 символов
+✓ Содержит все обязательные разделы
+✓ JSON структура соответствует схеме

@@ -5,7 +5,7 @@ All prompt text is injected via constructor.
 
 from __future__ import annotations
 
-import anthropic
+import google.generativeai as genai
 from loguru import logger
 
 from research_agents.agents.research.models import (
@@ -19,7 +19,7 @@ class Synthesizer:
 
     def __init__(
         self,
-        client: anthropic.Anthropic,
+        client: genai.GenerativeModel,
         system_prompt: str,
         user_template: str,
     ) -> None:
@@ -40,28 +40,22 @@ class Synthesizer:
             for i, a in enumerate(analyses)
         )
 
-        response = self._client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=2048,
-            system=[
-                {
-                    "type": "text",
-                    "text": self._system_prompt,
-                    "cache_control": {"type": "ephemeral"},
-                }
-            ],
-            messages=[
-                {
-                    "role": "user",
-                    "content": self._user_template.format(
-                        goal=goal,
-                        category=category.value,
-                        sources_block=sources_block,
-                    ),
-                }
-            ],
+        user_content = self._user_template.format(
+            goal=goal,
+            category=category.value,
+            sources_block=sources_block,
         )
-        return response.content[0].text.strip()
+
+        response = self._client.generate_content(
+            contents=[
+                f"{self._system_prompt}\n\n{user_content}"
+            ],
+            generation_config=genai.types.GenerationConfig(
+                max_output_tokens=2048,
+                temperature=0.7,
+            ),
+        )
+        return response.text.strip()
 
     def literature_review_sections(self, report: LiteratureReport) -> dict[KnowledgeCategory, str]:
         """Return dict of category → section text for all categories with relevant papers."""

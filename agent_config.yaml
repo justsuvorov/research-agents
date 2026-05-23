@@ -1,0 +1,96 @@
+# Research Agents Configuration
+# Customize this file for your research goal and data requirements
+
+research:
+  # Literature search sources: arxiv, semantic_scholar, mdpi, elibrary
+  sources: [arxiv, semantic_scholar, mdpi]
+  max_papers: 30
+  citation_format: APA
+  language: en
+
+data:
+  output_format: csv
+
+  # Extract data from paper abstracts
+  extraction_rules:
+    - name: "Масса стрелы"
+      type: numeric
+      description: "Масса крановой стрелы"
+      unit: "кг"
+    - name: "Масса груза"
+      type: numeric
+      description: "Масса поднимаемого груза"
+      unit: "кг"
+    - name: "Крутящий момент"
+      type: numeric
+      description: "Крутящий момент на зубчатой передаче"
+      unit: "кНм"
+    - name: "Контактное напряжение"
+      type: numeric
+      description: "Контактное напряжение на рабочей поверхности зубьев"
+      unit: "МПа"
+    - name: "Твердость материала"
+      type: numeric
+      description: "Твердость по Бринеллю (HB)"
+      unit: "HB"
+    - name: "Коэффициент динамичности"
+      type: numeric
+      description: "Коэффициент динамичности ψ с учетом пуска, торможения и качки"
+      unit: "безразмерный"
+    - name: "Угол крена"
+      type: numeric
+      description: "Угол крена судна"
+      unit: "град"
+    - name: "Тип материала"
+      type: categorical
+      description: "Тип материала конструкции (сталь, ПКМ)"
+      unit: null
+
+  # Standards-based calculations (optional)
+  calculations: []
+  # Example:
+  # - name: "Stress Calculation"
+  #   standard: "ISO 3844"
+  #   description: "Calculate stress from force and area"
+  #   formula: "σ = F / A"
+  #   parameter_ranges:
+  #     F: [1000, 5000, 10000]
+  #     A: [100, 200, 500]
+  #   output_columns:
+  #     - name: "stress"
+  #       type: numeric
+  #       unit: "MPa"
+
+  # Engineering calculations via LLM (optional)
+  engineering_calculations: []
+  # Example:
+  # - name: "Gear Wear Calculation"
+  #   mechanism: "Contact stress by Hertz"
+  #   standards: ["ISO 281", "ISO 6336"]
+  #   description: "Calculate bearing life and fatigue"
+  #   input_parameters:
+  #     load: [500, 1000, 2000]
+  #     speed: [100, 500, 1000]
+  #   output_columns:
+  #     - name: "bearing_life"
+  #       type: numeric
+  #       unit: "hours"
+
+  # User-provided dataset (optional, CSV or JSON)
+  user_data: null
+  # Example: user_data: "path/to/your_data.csv"
+
+ml:
+  model: GLM
+  # YOUR TARGET VARIABLE — must exist in the dataset
+  target_variable: null
+  # Leave empty to use all non-target numeric columns as features
+  features: []
+  hyperparameters: {}
+
+report:
+  template: null
+  sections: [abstract, introduction, methods, results, discussion, conclusion]
+  figures:
+    format: pdf
+    dpi: 300

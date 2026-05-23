@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 
-import anthropic
+import google.generativeai as genai
 from loguru import logger
 
 from research_agents.agents.research.models import PaperAnalysis
@@ -19,7 +19,7 @@ class PaperExtractor:
 
     def __init__(
         self,
-        client: anthropic.Anthropic,
+        client: genai.GenerativeModel,
         system_prompt: str,
         user_template: str,
     ) -> None:
@@ -55,20 +55,17 @@ class PaperExtractor:
 
         logger.debug("[PaperExtractor] extracting from: {}", analysis.paper.title[:60])
 
-        response = self._client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=2048,
-            system=[
-                {
-                    "type": "text",
-                    "text": self._system_prompt,
-                    "cache_control": {"type": "ephemeral"},
-                }
+        response = self._client.generate_content(
+            contents=[
+                f"{self._system_prompt}\n\n{content}"
             ],
-            messages=[{"role": "user", "content": content}],
+            generation_config=genai.types.GenerationConfig(
+                max_output_tokens=2048,
+                temperature=0.5,
+            ),
         )
 
-        return self._parse_rows(response.content[0].text, analysis, rules)
+        return self._parse_rows(response.text, analysis, rules)
 
     def _parse_rows(
         self,

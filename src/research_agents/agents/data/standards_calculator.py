@@ -8,8 +8,9 @@ from __future__ import annotations
 
 import itertools
 import json
+import os
 
-import anthropic
+import google.generativeai as genai
 from loguru import logger
 
 from research_agents.config import CalculationRule
@@ -19,7 +20,7 @@ class StandardsCalculator:
 
     def __init__(
         self,
-        client: anthropic.Anthropic,
+        client: genai.GenerativeModel,
         system_prompt: str,
         user_template: str,
     ) -> None:
@@ -58,20 +59,17 @@ class StandardsCalculator:
             result_schema_example=result_schema_example,
         )
 
-        response = self._client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=4096,
-            system=[
-                {
-                    "type": "text",
-                    "text": self._system_prompt,
-                    "cache_control": {"type": "ephemeral"},
-                }
+        response = self._client.generate_content(
+            contents=[
+                f"{self._system_prompt}\n\n{content}"
             ],
-            messages=[{"role": "user", "content": content}],
+            generation_config=genai.types.GenerationConfig(
+                max_output_tokens=4096,
+                temperature=float(os.getenv("GEN_TEMPERATURE_DETERMINISTIC", 0.2)),
+            ),
         )
 
-        return self._parse_rows(response.content[0].text, rule)
+        return self._parse_rows(response.text, rule)
 
     def _parameter_grid(self, rule: CalculationRule) -> list[dict]:
         """Return Cartesian product of all parameter ranges as list of dicts."""

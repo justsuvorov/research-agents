@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import json
 
-import anthropic
+import google.generativeai as genai
 from loguru import logger
 
 _FALLBACK_QUERIES = [
@@ -24,7 +24,7 @@ class QueryBuilder:
 
     def __init__(
         self,
-        client: anthropic.Anthropic,
+        client: genai.GenerativeModel,
         system_prompt: str,
         user_template: str,
     ) -> None:
@@ -36,25 +36,19 @@ class QueryBuilder:
         """Return list of search query strings generated from the research goal."""
         logger.debug("[QueryBuilder] generating {} queries", n_queries)
 
-        response = self._client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=512,
-            system=[
-                {
-                    "type": "text",
-                    "text": self._system_prompt,
-                    "cache_control": {"type": "ephemeral"},
-                }
+        user_message = self._user_template.format(goal=goal, n_queries=n_queries)
+
+        response = self._client.generate_content(
+            contents=[
+                f"{self._system_prompt}\n\n{user_message}"
             ],
-            messages=[
-                {
-                    "role": "user",
-                    "content": self._user_template.format(goal=goal, n_queries=n_queries),
-                }
-            ],
+            generation_config=genai.types.GenerationConfig(
+                max_output_tokens=512,
+                temperature=0.7,
+            ),
         )
 
-        raw = response.content[0].text.strip()
+        raw = response.text.strip()
         try:
             queries = json.loads(raw)
             if not isinstance(queries, list):
