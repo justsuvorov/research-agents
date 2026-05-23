@@ -9,7 +9,7 @@ from google.genai import types
 
 class AIModel(ABC):
     @abstractmethod
-    def complete(self, *, system: str, user: str, max_tokens: int) -> str:
+    def result(self, *, system: str, user: str, max_tokens: int) -> str:
         ...
 
 
@@ -19,7 +19,7 @@ class GeminiModel(AIModel):
         self._client = client
         self._model = model
 
-    def complete(self, *, system: str, user: str, max_tokens: int) -> str:
+    def result(self, *, system: str, user: str, max_tokens: int) -> str:
         response = self._client.models.generate_content(
             model=self._model,
             contents=user,
@@ -37,7 +37,7 @@ class AnthropicModel(AIModel):
         self._client = client
         self._model = model
 
-    def complete(self, *, system: str, user: str, max_tokens: int) -> str:
+    def result(self, *, system: str, user: str, max_tokens: int) -> str:
         response = self._client.messages.create(
             model=self._model,
             max_tokens=max_tokens,

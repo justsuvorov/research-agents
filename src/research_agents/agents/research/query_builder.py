@@ -37,7 +37,7 @@ class QueryBuilder:
         """Return list of search query strings generated from the research goal."""
         logger.debug("[QueryBuilder] generating {} queries", n_queries)
 
-        raw = self._model.complete(
+        raw = self._model.result(
             system=self._system_prompt,
             user=self._user_template.format(goal=goal, n_queries=n_queries),
             max_tokens=512,

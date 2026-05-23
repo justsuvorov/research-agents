@@ -37,7 +37,7 @@ class PaperAnalyzer:
             abstract=paper.abstract or "No abstract available.",
         )
 
-        raw = self._model.complete(
+        raw = self._model.result(
             system=self._system_prompt,
             user=content,
             max_tokens=1024,

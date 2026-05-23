@@ -41,7 +41,7 @@ class Synthesizer:
             for i, a in enumerate(analyses)
         )
 
-        return self._model.complete(
+        return self._model.result(
             system=self._system_prompt,
             user=self._user_template.format(
                 goal=goal,
