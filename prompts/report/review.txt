@@ -1,0 +1,28 @@
+Research goal:
+{goal}
+
+Dataset summary:
+{dataset_summary}
+
+Model results (JSON):
+{model_results_json}
+
+Available figure files (in figures/):
+{figure_list}
+
+Write a complete technical review (Markdown) of this model fit. Structure:
+
+## 1. Цель и данные
+## 2. Модель
+## 3. Коэффициенты
+## 4. Качество подгонки
+## 5. Диагностика остатков
+## 6. Инженерная интерпретация
+## 7. Ограничения и дальнейшие шаги
+
+In section 3 produce a Markdown table with columns: feature, coefficient, p-value, 95% CI.
+In section 6 explain which factors most strongly drive the target and by how much,
+referencing concrete coefficient magnitudes.
+Reference figures by filename (e.g. "см. coef_plot.pdf") where relevant.
+
+Return only the Markdown body — no preamble, no fences.
