@@ -24,7 +24,7 @@ from dotenv import load_dotenv
 from loguru import logger
 
 from research_agents.agents.data.assembler import DatasetAssembler
-from research_agents.agents.data.engineering_calculator import EngineeringCalculator
+from research_agents.agents.data.opu_load_calculator import OpuLoadCalculator
 from research_agents.agents.data.paper_extractor import PaperExtractor
 from research_agents.agents.data.standards_calculator import StandardsCalculator
 from research_agents.agents.data_agent import DataAgent
@@ -153,11 +153,7 @@ def main(args: argparse.Namespace) -> int:
                 system_prompt=prompts.prompt_text("data", "system.txt"),
                 user_template=prompts.prompt_text("data", "standards_calculator.txt"),
             ),
-            engineering_calculator=EngineeringCalculator(
-                client=llm,
-                system_prompt=prompts.prompt_text("data", "engineering_calculator_system.txt"),
-                user_template=prompts.prompt_text("data", "engineering_calculator_user.txt"),
-            ),
+            opu_load_calculator=OpuLoadCalculator(),
             assembler=DatasetAssembler(),
         ),
         ml_agent=MLAgent(

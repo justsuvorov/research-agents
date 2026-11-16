@@ -20,6 +20,7 @@ import google.generativeai as genai
 from loguru import logger
 
 from research_agents.config import EngineeringCalculationRule
+from research_agents.utils import retry_on_timeout
 
 
 class EngineeringCalculator:
@@ -103,8 +104,14 @@ class EngineeringCalculator:
             result_schema_example=result_schema_example,
         )
 
+        response = self._generate_with_retry(content, rule.name)
+        return self._parse_rows(response.text, rule, len(batch)) if response else []
+
+    @retry_on_timeout(max_retries=2, initial_delay=2.0, max_delay=20.0)
+    def _generate_with_retry(self, content: str, rule_name: str = "") -> any:
+        """Generate content with automatic retry on timeout/quota errors."""
         try:
-            response = self._client.generate_content(
+            return self._client.generate_content(
                 contents=[
                     f"{self._system_prompt}\n\n{content}"
                 ],
@@ -114,12 +121,11 @@ class EngineeringCalculator:
                 ),
             )
         except Exception as exc:
-            logger.warning(
-                "[EngineeringCalculator] API error for '{}': {}", rule.name, exc
-            )
-            return []
-
-        return self._parse_rows(response.text, rule, len(batch))
+            if rule_name:
+                logger.warning(
+                    "[EngineeringCalculator] API error for '{}': {}", rule_name, exc
+                )
+            raise
 
     def _parse_rows(
         self, raw: str, rule: EngineeringCalculationRule, expected: int

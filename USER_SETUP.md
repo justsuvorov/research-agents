@@ -142,7 +142,7 @@ data:
   output_format: csv
   extraction_rules: []
   calculations: []
-  engineering_calculations: []
+  opu_load_calculations: []   # расчёт нагрузок на ОПУ, пример — crane_loads_config.yaml
   user_data: null
 ```
 
@@ -198,7 +198,6 @@ data:
 - `prompts/data/system.txt`
 - `prompts/data/paper_extractor.txt`
 - `prompts/data/standards_calculator.txt`
-- `prompts/data/engineering_calculator.txt`
 
 ### 6.2 MLAgent (обучение модели)
 Заполните в `agent_config.yaml`:

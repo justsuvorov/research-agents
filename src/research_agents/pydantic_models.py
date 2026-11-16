@@ -34,6 +34,7 @@ class Artifacts(BaseModel):
     dataset: Optional[str] = None             # path to dataset.csv
     dataset_metadata: Optional[str] = None    # path to dataset_metadata.json
     model_results: Optional[str] = None       # path to model_results.json
+    predictions: Optional[str] = None         # path to model_predictions.xlsx
     figures_dir: Optional[str] = None         # path to figures/
     article: Optional[str] = None             # path to article.tex
     article_pdf: Optional[str] = None         # path to article.pdf

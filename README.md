@@ -251,3 +251,21 @@ mypy src/          # type check
 - Python 3.11+
 - [outboxml](https://github.com/SVSemyonov/outboxml) == 0.10.0
 - Anthropic API key (Claude)
+
+## Ship crane slewing torque (ОПУ)
+
+Two stand-alone runners calculate loads on the slewing bearing (ОПУ) of ship cranes
+and build the regression model of the slewing torque:
+
+```bash
+python run_crane_loads.py --config crane_loads_config.yaml   # table of loads and torque M (no LLM)
+python run_ml_report.py   --config crane_loads_config.yaml   # GLM (outboxml), predictions, figures
+```
+
+- `OpuLoadCalculator` (`src/research_agents/agents/data/opu_load_calculator.py`) computes
+  F_a, F_r, M_опр, the friction torque (2.36), torques from heel, wind and start-up inertia,
+  the slewing torque M, the pinion torque T₂ (2.37) and the normal tooth force F_n (2.38) —
+  see `specs/05_opu_load_calculator.spec.md`.
+- The GLM is configured in the `ml` section: target `M`, features `WEIGHT` (cargo mass),
+  `PSI` (dynamic coefficient ψ) and `Q` (boom mass) with WoE binning for ψ and boom mass.
+- Outputs: `dataset.csv`, `model_results.json`, `model_predictions.xlsx`, `figures/`, `figures/groups/`.

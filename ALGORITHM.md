@@ -106,7 +106,6 @@ GEN_TEMPERATURE_DETERMINISTIC=0.2 # Для вычислений
 | Synthesizer | 0.7-0.8 | Творческое написание |
 | PaperExtractor | 0.5 | Точное извлечение данных |
 | StandardsCalculator | 0.2 | Детерминированные расчеты |
-| EngineeringCalculator | 0.2 | Детерминированные расчеты |
 
 ---
 
@@ -158,7 +157,6 @@ python main.py \
 ### DataAgent (готов, но не используется):
 - ✅ `paper_extractor.py` — generate_content
 - ✅ `standards_calculator.py` — generate_content
-- ✅ `engineering_calculator.py` — generate_content
 
 ### ReportAgent (готов, но не используется):
 - ✅ `report_agent.py` — generate_content

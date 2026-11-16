@@ -1,12 +1,12 @@
 # Спецификация DataAgent (SDD)
 
 ## 1. Цель
-Собрать датасет из трех источников: paper extraction, standards calculations, user data.
+Собрать датасет из четырёх источников: paper extraction, standards calculations, расчёт нагрузок на ОПУ (OpuLoadCalculator), user data.
 
 ## 2. Входные данные
 - **papers.json** — релевантные статьи от ResearchAgent
-- **agent_config.yaml** — конфиг (extraction_rules, calculations, engineering_calculations, user_data)
-- **prompts/data/** — пользовательские промпты (system.txt, paper_extractor.txt, standards_calculator.txt, engineering_calculator.txt)
+- **agent_config.yaml** — конфиг (extraction_rules, calculations, opu_load_calculations, user_data)
+- **prompts/data/** — пользовательские промпты (system.txt, paper_extractor.txt, standards_calculator.txt)
 
 ## 3. Ограничения (GUARDRAILS)
 
@@ -24,13 +24,9 @@
 - Max tokens: 4096
 - Если комбинаций > 1000: предупреждение и обрезка
 
-### 3.3 EngineeringCalculator
-- Max комбинаций на rule: 500
-- Batch size: 20 параметров за раз
-- Таймаут на batch: 40 сек
-- Max tokens: 8192
-- Retry API: 3 раза
-- Если ошибок > 50%: skip весь rule
+### 3.3 OpuLoadCalculator
+- Детерминированный расчёт по формулам раздела 2.1.4, без LLM и сетевых вызовов
+- Спецификация: specs/05_opu_load_calculator.spec.md
 
 ### 3.4 DatasetAssembler
 - Min rows: 10 (иначе RuntimeError)

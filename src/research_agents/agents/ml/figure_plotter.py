@@ -6,6 +6,9 @@ Plots:
   residuals         — Pearson residuals vs fitted values
   qq_plot           — QQ plot of Pearson residuals
   feature_importance — absolute coefficient magnitudes (excluding intercept)
+
+Group plots (group_plots): mean calculated vs mean model value of the target
+for groups of each feature and of the target itself.
 """
 
 from __future__ import annotations
@@ -15,6 +18,7 @@ from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from loguru import logger
 from scipy import stats
 
@@ -36,6 +40,51 @@ class FigurePlotter:
         self._residuals_plot(ds_result, figures_dir / f"residuals.{fmt}")
         self._qq_plot(ds_result, figures_dir / f"qq_plot.{fmt}")
         self._feature_importance(glm_result, figures_dir / f"feature_importance.{fmt}")
+
+    def group_plots(
+        self,
+        predictions: pd.DataFrame,
+        target: str,
+        group_columns: list[str],
+        figures_dir: Path,
+        fmt: str = "pdf",
+        bins: int = 6,
+    ) -> list[Path]:
+        """Plot mean calculated vs mean model target for groups of each column.
+        Columns with more than `bins` distinct values are split into equal-width intervals."""
+        figures_dir.mkdir(parents=True, exist_ok=True)
+        model_col = f"{target}_model"
+        paths: list[Path] = []
+        for column in [*group_columns, target]:
+            if column not in predictions.columns:
+                logger.warning("[FigurePlotter] column '{}' not found, skipping group plot", column)
+                continue
+            values = predictions[column]
+            groups = pd.cut(values, bins=bins) if values.nunique() > bins else values
+            means = (
+                predictions.assign(_group=groups)
+                .groupby("_group", observed=True)[[target, model_col]]
+                .mean()
+            )
+            labels = [str(g) for g in means.index]
+            x = np.arange(len(labels))
+
+            fig, ax = plt.subplots(figsize=(8, 4.5))
+            ax.bar(x - 0.2, means[target].to_numpy(), width=0.4, alpha=0.7, label="Calculation")
+            ax.bar(x + 0.2, means[model_col].to_numpy(), width=0.4, alpha=0.7, label="Model")
+            ax.set_xticks(x)
+            ax.set_xticklabels(labels, rotation=30, ha="right")
+            ax.set_xlabel(column)
+            ax.set_ylabel(f"Mean {target}")
+            ax.set_title(f"{target}: calculation vs model by {column}")
+            ax.legend()
+            plt.tight_layout()
+            path = figures_dir / f"group_{column}.{fmt}"
+            fig.savefig(path)
+            plt.close(fig)
+            paths.append(path)
+            logger.info("[FigurePlotter] saved {}", path.name)
+        return paths
 
     # ------------------------------------------------------------------
 

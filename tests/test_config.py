@@ -80,7 +80,7 @@ class TestDataConfig:
         assert cfg.output_format == "csv"
         assert cfg.extraction_rules == []
         assert cfg.calculations == []
-        assert cfg.engineering_calculations == []
+        assert cfg.opu_load_calculations == []
         assert cfg.user_data is None
 
     def test_create_with_extraction_rules(self) -> None:

@@ -1,6 +1,6 @@
 """
 MLAgent — fits a GLM model on the assembled dataset via outboxml
-and exports model_results.json + diagnostic figures.
+and exports model_results.json, model_predictions.xlsx, diagnostic and group figures.
 """
 
 from __future__ import annotations
@@ -42,15 +42,19 @@ class MLAgent(BaseAgent):
 
         model_result, glm_result = self._model_runner.fit(df, configs_dir)
 
-        self._figure_plotter.plot(
-            glm_result,
-            figures_dir,
-            fmt=self.ctx.config.get("report", {}).get("figures", {}).get("format", "pdf"),
+        fmt = self.ctx.config.get("report", {}).get("figures", {}).get("format", "pdf")
+        self._figure_plotter.plot(glm_result, figures_dir, fmt=fmt)
+
+        predictions = self._model_runner.predictions(glm_result, df)
+        self._figure_plotter.group_plots(
+            predictions, model_result.target, model_result.features, figures_dir / "groups", fmt=fmt
         )
 
         results_path = self._result_exporter.model_results_path(model_result, output_dir)
+        predictions_path = self._result_exporter.predictions_path(predictions, output_dir)
 
         self.ctx.set_artifact("model_results", str(results_path))
+        self.ctx.set_artifact("predictions", str(predictions_path))
         self.ctx.set_artifact("figures_dir", str(figures_dir))
 
     # ------------------------------------------------------------------

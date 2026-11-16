@@ -46,7 +46,7 @@ class DatasetAssembler:
 
         if engineering_rows:
             frames.append(pd.DataFrame(engineering_rows))
-            logger.info("[DatasetAssembler] engineering calculation rows: {}", len(engineering_rows))
+            logger.info("[DatasetAssembler] ОПУ load calculation rows: {}", len(engineering_rows))
 
         if user_rows:
             frames.append(pd.DataFrame(user_rows))
@@ -108,7 +108,7 @@ class DatasetAssembler:
             "sources": {
                 "papers":                  len(paper_rows),
                 "calculations":            len(calculation_rows),
-                "engineering_calculations": len(engineering_rows),
+                "opu_load_calculations": len(engineering_rows),
                 "user":                    len(user_rows),
             },
             "columns": columns,

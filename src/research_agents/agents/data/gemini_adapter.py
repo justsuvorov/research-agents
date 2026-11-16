@@ -1,8 +1,7 @@
 """
 GeminiAdapter — Anthropic-API-compatible facade over google-genai.
 
-Exposes only the slice of the Anthropic client surface used by EngineeringCalculator
-(and other data-agent components):
+Exposes only the slice of the Anthropic client surface used by the LLM-based data-agent components:
     client.messages.create(model=, max_tokens=, system=[...], messages=[...])
         → response.content[0].text
 
